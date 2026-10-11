@@ -15,6 +15,10 @@ object Constants {
     
     const val GAME_LIST_LIMIT = 200
     const val TROPHY_LIST_LIMIT = 200
+
+    // PSN 语言标签:简中需用 zh-Hans(zh-CN 无效);Trophy API 不支持中文,恒为英文
+    const val LANG_ENGLISH = "en"
+    const val LANG_CHINESE = "zh-Hans"
     
     const val DATASTORE_NAME = "achievement_preferences"
     const val KEY_ACCESS_TOKEN = "access_token"

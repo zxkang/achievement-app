@@ -31,6 +31,7 @@ interface TrophyApi {
         @Path("npCommunicationId") npCommunicationId: String,
         @Path("trophyGroupId") trophyGroupId: String = "default",
         @Query("npServiceName") npServiceName: String = "trophy",
+        @Header("Accept-Language") acceptLanguage: String = Constants.LANG_CHINESE,
         @Header("Authorization") authorization: String
     ): TitleTrophiesResponse
     

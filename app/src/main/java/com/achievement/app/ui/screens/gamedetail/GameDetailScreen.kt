@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,6 +36,17 @@ fun GameDetailScreen(
     viewModel: GameDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var selectedFilter by remember { mutableIntStateOf(0) }
+    val allTrophies = uiState.trophies
+    val earnedCount = allTrophies.count { it.isEarned }
+    val filteredTrophies = remember(allTrophies, selectedFilter) {
+        when (selectedFilter) {
+            1 -> allTrophies.filter { it.isEarned }
+            2 -> allTrophies.filter { !it.isEarned }
+            else -> allTrophies
+        }
+    }
 
     LaunchedEffect(uiState.game?.npCommunicationId) {
         val npId = uiState.game?.npCommunicationId
@@ -171,6 +185,31 @@ fun GameDetailScreen(
                     }
                 }
 
+                if (uiState.isLoadingTrophies && uiState.trophies.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = PSNBlue,
+                                    modifier = Modifier.size(32.dp),
+                                    strokeWidth = 3.dp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "正在加载奖杯…",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = PSNOnSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.trophies.isNotEmpty()) {
                     item {
                         Text(
@@ -182,32 +221,108 @@ fun GameDetailScreen(
                         )
                     }
 
-                    items(uiState.trophies) { trophy ->
+                    item {
+                        val options = listOf(
+                            "全部 ${uiState.trophies.size}",
+                            "已获得 $earnedCount",
+                            "未获得 ${uiState.trophies.size - earnedCount}"
+                        )
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            options.forEachIndexed { index, label ->
+                                SegmentedButton(
+                                    selected = selectedFilter == index,
+                                    onClick = { selectedFilter = index },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = options.size
+                                    ),
+                                    colors = SegmentedButtonDefaults.colors(
+                                        activeContainerColor = PSNBlue.copy(alpha = 0.25f),
+                                        activeContentColor = PSNBlueLight,
+                                        inactiveContainerColor = PSNSurface,
+                                        inactiveContentColor = PSNOnSurfaceVariant
+                                    )
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    items(filteredTrophies) { trophy ->
                         TrophyItemCard(trophy = trophy)
+                    }
+
+                    if (filteredTrophies.isEmpty()) {
+                        item {
+                            Text(
+                                text = if (selectedFilter == 1) "暂无已获得的奖杯" else "暂无未获得的奖杯",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = PSNOnSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
                     }
                 }
 
                 if (uiState.trophies.isEmpty() && !uiState.isLoadingTrophies) {
+                    val gameName = uiState.game?.name.orEmpty()
+                    val hasNp = uiState.game?.npCommunicationId != null
                     item {
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
+                                .padding(vertical = 40.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                if (uiState.game?.npCommunicationId == null) {
-                                    Text(
-                                        text = "该游戏暂无奖杯数据",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = PSNOnSurfaceVariant
+                            Icon(
+                                imageVector = Icons.Filled.EmojiEvents,
+                                contentDescription = null,
+                                tint = PSNOnSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = when {
+                                    hasNp -> "还没有加载奖杯详情"
+                                    isCollectionName(gameName) -> "这是一个游戏合集"
+                                    else -> "该游戏暂无奖杯记录"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = PSNOnSurface
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = when {
+                                    hasNp -> "下拉刷新,或点击下方按钮同步该游戏的奖杯列表"
+                                    isCollectionName(gameName) -> "合集内的奖杯按子游戏分别记录,请从对应的子游戏查看"
+                                    else -> "该游戏可能没有奖杯,或尚未在你的账号中生成奖杯记录"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = PSNOnSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                            if (hasNp) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                FilledTonalButton(onClick = { viewModel.syncTrophies() }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                } else {
-                                    Text(
-                                        text = "下拉刷新加载奖杯详情",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = PSNOnSurfaceVariant
-                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("加载奖杯")
                                 }
                             }
                         }
@@ -234,6 +349,12 @@ fun GameDetailScreen(
             }
         }
     }
+}
+
+/** 判断是否为合集/捆绑包类标题(其奖杯通常按子游戏分别记录)。 */
+private fun isCollectionName(name: String): Boolean {
+    val n = name.lowercase()
+    return listOf("trilogy", "collection", "bundle", "合辑", "合集", "三部曲").any { n.contains(it) }
 }
 
 @Composable

@@ -20,6 +20,7 @@ import coil.compose.AsyncImage
 import com.achievement.app.R
 import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
+import com.achievement.app.domain.util.TimeUtils
 import com.achievement.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,12 +76,15 @@ fun GameCard(
                         color = PSNBlueLight
                     )
                     if (game.lastPlayed != null) {
+                        val lastPlayedText = TimeUtils.formatRelativeTime(
+                            TimeUtils.parseISO8601DateTime(game.lastPlayed)
+                        )
                         Text(
                             text = "·",
                             color = PSNOnSurfaceVariant
                         )
                         Text(
-                            text = game.lastPlayed,
+                            text = "最近 $lastPlayedText",
                             style = MaterialTheme.typography.labelSmall,
                             color = PSNOnSurfaceVariant
                         )

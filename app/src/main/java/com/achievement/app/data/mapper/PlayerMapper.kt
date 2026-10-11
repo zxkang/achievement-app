@@ -5,6 +5,7 @@ import com.achievement.app.data.remote.dto.BasicPresenceResponse
 import com.achievement.app.data.remote.dto.TrophySummaryResponse
 import com.achievement.app.data.remote.dto.UserProfileResponse
 import com.achievement.app.domain.model.Player
+import com.achievement.app.domain.util.PsnImageUrl
 
 object PlayerMapper {
 
@@ -13,10 +14,12 @@ object PlayerMapper {
         summary: TrophySummaryResponse,
         presence: BasicPresenceResponse? = null
     ): PlayerEntity {
-        val avatarUrl = profile.avatars
-            .firstOrNull { it.size == "l" }
-            ?.httpsUrl
-            ?: profile.avatars.firstOrNull()?.httpsUrl
+        val avatarUrl = PsnImageUrl.forceRaster(
+            profile.avatars
+                .firstOrNull { it.size == "l" }
+                ?.httpsUrl
+                ?: profile.avatars.firstOrNull()?.httpsUrl
+        )
 
         val isOnline = presence?.availability == "availableToPlay" &&
             presence.primaryPlatformInfo?.onlineStatus == "online"

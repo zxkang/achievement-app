@@ -200,31 +200,20 @@ fun TrophyStatCircle(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = painterResource(iconRes),
-                    contentDescription = label,
-                    modifier = Modifier.size(34.dp),
-                    contentScale = ContentScale.Fit
-                )
-                Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
+        Image(
+            painter = painterResource(iconRes),
+            contentDescription = label,
+            modifier = Modifier.size(40.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,

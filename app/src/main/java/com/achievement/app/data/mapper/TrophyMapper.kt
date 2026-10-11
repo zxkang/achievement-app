@@ -46,9 +46,12 @@ object TrophyMapper {
         )
     }
     
-    fun dtoToPlatinumHallEntity(dto: TrophyTitleDto): PlatinumHallEntity? {
+    fun dtoToPlatinumHallEntity(
+        dto: TrophyTitleDto,
+        displayName: String? = null
+    ): PlatinumHallEntity? {
         if (dto.earnedTrophies.platinum == 0) return null
-        
+
         val lastUpdated = dto.lastUpdatedDateTime?.let {
             try {
                 java.time.Instant.parse(it)
@@ -58,12 +61,12 @@ object TrophyMapper {
                 LocalDateTime.now()
             }
         } ?: LocalDateTime.now()
-        
+
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        
+
         return PlatinumHallEntity(
             appId = dto.npCommunicationId,
-            gameName = dto.trophyTitleName,
+            gameName = displayName?.takeIf { it.isNotBlank() } ?: dto.trophyTitleName,
             platinumEarnedDate = lastUpdated.format(formatter),
             year = lastUpdated.year
         )

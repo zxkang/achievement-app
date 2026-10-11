@@ -13,6 +13,7 @@ import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.model.PlatinumHall
 import com.achievement.app.domain.model.Trophy
+import com.achievement.app.domain.util.Constants
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -66,8 +67,14 @@ class GameRepository @Inject constructor(
 
             val authorization = "Bearer $accessToken"
 
-            val gameListResponse = gameApi.getUserGames(
+            val enGameList = gameApi.getUserGames(
                 accountId = accountId,
+                acceptLanguage = Constants.LANG_ENGLISH,
+                authorization = authorization
+            )
+            val zhGameList = gameApi.getUserGames(
+                accountId = accountId,
+                acceptLanguage = Constants.LANG_CHINESE,
                 authorization = authorization
             )
 
@@ -76,11 +83,18 @@ class GameRepository @Inject constructor(
                 authorization = authorization
             )
 
-            var gameEntities = GameMapper.dtoListToEntityList(gameListResponse.titles)
-            gameEntities = GameMapper.enrichGameEntitiesWithTrophyData(
-                gameEntities,
-                trophyTitlesResponse.trophyTitles
+            // 以 titleId 为键建立 英文规范化名 -> 中文名 映射(Trophy API 不支持中文,只能靠英文名关联)
+            val chineseNameMap = GameMapper.buildChineseNameMap(enGameList.titles, zhGameList.titles)
+
+            val gameEntities = GameMapper.buildGameEntities(
+                enTitles = enGameList.titles,
+                chineseNameByNormalizedEnglish = chineseNameMap,
+                trophyTitles = trophyTitlesResponse.trophyTitles
             )
+            // 先清空再写入:合并去重后被丢弃的变体行不会残留,避免重复与过期数据累积
+            gameDao.deleteAllGames()
+            achievementDao.deleteAllAchievements()
+            platinumHallDao.deleteAllPlatinumHall()
             gameDao.insertGames(gameEntities)
 
             val achievementEntities = TrophyMapper.dtoListToAchievementEntityList(
@@ -89,7 +103,12 @@ class GameRepository @Inject constructor(
             achievementDao.insertAchievements(achievementEntities)
 
             val platinumHalls = trophyTitlesResponse.trophyTitles
-                .mapNotNull { TrophyMapper.dtoToPlatinumHallEntity(it) }
+                .mapNotNull {
+                    TrophyMapper.dtoToPlatinumHallEntity(
+                        it,
+                        displayName = chineseNameMap[GameMapper.normalizeGameName(it.trophyTitleName)]
+                    )
+                }
             platinumHallDao.insertPlatinumHall(platinumHalls)
 
             Result.success(Unit)

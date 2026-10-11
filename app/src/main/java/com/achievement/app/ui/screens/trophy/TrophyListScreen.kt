@@ -1,11 +1,9 @@
 package com.achievement.app.ui.screens.trophy
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -58,13 +56,8 @@ fun TrophyListScreen(
                 )
             }
 
-            if (gamesWithAchievements.isNotEmpty()) {
+            uiState.player?.let { player ->
                 item {
-                    val totalPlatinum = gamesWithAchievements.sumOf { it.second?.platinumEarned ?: 0 }
-                    val totalGold = gamesWithAchievements.sumOf { it.second?.goldEarned ?: 0 }
-                    val totalSilver = gamesWithAchievements.sumOf { it.second?.silverEarned ?: 0 }
-                    val totalBronze = gamesWithAchievements.sumOf { it.second?.bronzeEarned ?: 0 }
-
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -78,10 +71,10 @@ fun TrophyListScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp, vertical = 20.dp)
                         ) {
-                            TrophyStatItem("白金", totalPlatinum, Platinum, R.drawable.trophy_icon_platinum, Modifier.weight(1f))
-                            TrophyStatItem("金", totalGold, Gold, R.drawable.trophy_icon_gold, Modifier.weight(1f))
-                            TrophyStatItem("银", totalSilver, Silver, R.drawable.trophy_icon_silver, Modifier.weight(1f))
-                            TrophyStatItem("铜", totalBronze, Bronze, R.drawable.trophy_icon_bronze, Modifier.weight(1f))
+                            TrophyStatItem("白金", player.platinumCount, Platinum, R.drawable.trophy_icon_platinum, Modifier.weight(1f))
+                            TrophyStatItem("金", player.goldCount, Gold, R.drawable.trophy_icon_gold, Modifier.weight(1f))
+                            TrophyStatItem("银", player.silverCount, Silver, R.drawable.trophy_icon_silver, Modifier.weight(1f))
+                            TrophyStatItem("铜", player.bronzeCount, Bronze, R.drawable.trophy_icon_bronze, Modifier.weight(1f))
                         }
                     }
                 }
@@ -144,20 +137,12 @@ private fun TrophyStatItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(iconRes),
-                contentDescription = label,
-                modifier = Modifier.size(34.dp),
-                contentScale = ContentScale.Fit
-            )
-        }
+        Image(
+            painter = painterResource(iconRes),
+            contentDescription = label,
+            modifier = Modifier.size(40.dp),
+            contentScale = ContentScale.Fit
+        )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = count.toString(),

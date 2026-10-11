@@ -3,9 +3,11 @@ package com.achievement.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.achievement.app.data.repository.GameRepository
+import com.achievement.app.data.repository.PlayerRepository
 import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.model.PlatinumHall
+import com.achievement.app.domain.model.Player
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,13 +18,15 @@ import javax.inject.Inject
 data class GameUiState(
     val games: List<Pair<Game, Achievement?>> = emptyList(),
     val platinumHall: List<PlatinumHall> = emptyList(),
+    val player: Player? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
-    private val gameRepository: GameRepository
+    private val gameRepository: GameRepository,
+    private val playerRepository: PlayerRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(GameUiState())
@@ -31,6 +35,7 @@ class GameViewModel @Inject constructor(
     init {
         loadGames()
         loadPlatinumHall()
+        loadPlayer()
     }
     
     private fun loadGames() {
@@ -48,12 +53,22 @@ class GameViewModel @Inject constructor(
             }
         }
     }
+
+    private fun loadPlayer() {
+        viewModelScope.launch {
+            playerRepository.getPlayer().collect { player ->
+                _uiState.value = _uiState.value.copy(player = player)
+            }
+        }
+    }
     
     fun syncFromApi() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             val result = gameRepository.syncGamesFromApi()
+            // 同步账号级奖杯汇总,保证顶部总数与官方一致
+            playerRepository.syncPlayerFromApi()
             
             result.onSuccess {
                 _uiState.value = _uiState.value.copy(isLoading = false)
