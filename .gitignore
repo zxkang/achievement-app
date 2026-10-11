@@ -1,0 +1,68 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Files for the ART/Dalvik VM
+*.class
+
+# Gradle files
+.gradle/
+build/
+*/build/
+app/build/
+.kotlin/
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+!/.idea/runConfigurations
+.navigation/
+captures/
+
+# Keystore / signing files (NEVER commit signing credentials)
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+signing.properties
+
+# Secrets & local config
+local.properties
+secrets.properties
+*.env
+.env
+google-services.json
+*.gpg
+
+# Android profiler / coverage
+*.prof
+*.ec
+*.ni
+*.hprof
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Native build intermediates
+.externalNativeBuild/
+.cxx/
+*.so
+!app/src/main/jniLibs/**/*.so
+
+# Log files
+*.log
+
+# Tooling / scratch (local dev artifacts)
+vibe_images/
+process_trophy_icons.py
+.qoder/
