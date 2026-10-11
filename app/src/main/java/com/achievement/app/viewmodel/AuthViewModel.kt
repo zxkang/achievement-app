@@ -3,6 +3,7 @@ package com.achievement.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.achievement.app.data.repository.AuthRepository
+import com.achievement.app.domain.util.SyncThrottle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +14,7 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val isAuthResolved: Boolean = false,
     val error: String? = null
 )
 
@@ -21,7 +23,14 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
     
-    private val _uiState = MutableStateFlow(AuthUiState())
+    private val _uiState = MutableStateFlow(
+        AuthUiState(
+            // 冷启动首帧用同步缓存判定登录态,消除等待 DataStore 异步首读的黑屏期;
+            // 随后由 checkLoginStatus 的 DataStore 流异步校正
+            isLoggedIn = authRepository.isLoggedInCached(),
+            isAuthResolved = true
+        )
+    )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     
     init {
@@ -31,7 +40,10 @@ class AuthViewModel @Inject constructor(
     private fun checkLoginStatus() {
         viewModelScope.launch {
             authRepository.isLoggedIn().collect { isLoggedIn ->
-                _uiState.value = _uiState.value.copy(isLoggedIn = isLoggedIn)
+                _uiState.value = _uiState.value.copy(
+                    isLoggedIn = isLoggedIn,
+                    isAuthResolved = true
+                )
             }
         }
     }
@@ -81,6 +93,7 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
+            SyncThrottle.reset()
             _uiState.value = _uiState.value.copy(isLoggedIn = false)
         }
     }

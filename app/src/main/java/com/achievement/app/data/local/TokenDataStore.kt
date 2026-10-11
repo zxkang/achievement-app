@@ -26,7 +26,17 @@ class TokenDataStore @Inject constructor(
     private val tokenExpiresAtKey = longPreferencesKey(Constants.KEY_TOKEN_EXPIRES_AT)
     private val accountIdKey = stringPreferencesKey(Constants.KEY_ACCOUNT_ID)
     private val onlineIdKey = stringPreferencesKey(Constants.KEY_ONLINE_ID)
-    
+
+    // 同步可读的登录态镜像:冷启动首帧即可判定进首页还是登录页,避免等待 DataStore 异步首读
+    private val loginCachePrefs = context.getSharedPreferences("auth_login_cache", Context.MODE_PRIVATE)
+    private val loggedInCacheKey = "logged_in"
+
+    fun isLoggedInCached(): Boolean = loginCachePrefs.getBoolean(loggedInCacheKey, false)
+
+    private fun setLoggedInCache(value: Boolean) {
+        loginCachePrefs.edit().putBoolean(loggedInCacheKey, value).apply()
+    }
+
     suspend fun saveTokens(
         accessToken: String,
         refreshToken: String,
@@ -38,6 +48,7 @@ class TokenDataStore @Inject constructor(
             preferences[refreshTokenKey] = refreshToken
             preferences[tokenExpiresAtKey] = expiresAt
         }
+        setLoggedInCache(true)
     }
     
     suspend fun saveAccountInfo(accountId: String, onlineId: String) {
@@ -61,6 +72,7 @@ class TokenDataStore @Inject constructor(
     
     suspend fun clear() {
         context.dataStore.edit { it.clear() }
+        setLoggedInCache(false)
     }
     
     fun isLoggedIn(): Flow<Boolean> = context.dataStore.data.map { 

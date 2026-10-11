@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AchievementApp" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- 深色基础主题 + 深色 windowBackground:冷启动起始窗口即为应用背景色,消除白屏闪烁 -->
+    <style name="Theme.AchievementApp" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/psn_background</item>
+        <item name="android:statusBarColor">@color/psn_background</item>
+        <item name="android:navigationBarColor">@color/psn_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <!-- 官方启动页:第一帧即深色底 + 纯白金奖杯(与 Compose 启动页完全一致,无圆盘无描边环),再无缝接到应用 -->
+    <style name="Theme.AchievementApp.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/psn_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.AchievementApp</item>
+    </style>
 </resources>

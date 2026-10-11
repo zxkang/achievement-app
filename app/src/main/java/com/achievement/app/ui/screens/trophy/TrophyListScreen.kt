@@ -25,6 +25,9 @@ import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.util.TimeUtils
 import com.achievement.app.ui.theme.*
+import com.achievement.app.ui.util.GameSort
+import com.achievement.app.ui.util.GameSortSelector
+import com.achievement.app.ui.util.applySort
 import com.achievement.app.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,8 +37,11 @@ fun TrophyListScreen(
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var sort by remember { mutableStateOf(GameSort.Default) }
 
-    val gamesWithAchievements = uiState.games.filter { it.second != null }
+    val gamesWithAchievements = remember(uiState.games, sort) {
+        uiState.games.filter { it.second != null }.applySort(sort)
+    }
 
     PullToRefreshBox(
         isRefreshing = uiState.isLoading,
@@ -78,6 +84,14 @@ fun TrophyListScreen(
                         }
                     }
                 }
+            }
+
+            item {
+                GameSortSelector(
+                    selected = sort,
+                    onSelect = { sort = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             items(gamesWithAchievements) { (game, achievement) ->

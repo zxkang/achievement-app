@@ -4,6 +4,7 @@ import com.achievement.app.data.local.entity.TrophyEntity
 import com.achievement.app.data.remote.dto.TrophyDetailDto
 import com.achievement.app.data.remote.dto.UserEarnedTrophyDto
 import com.achievement.app.domain.model.Trophy
+import com.achievement.app.domain.util.PsnImageUrl
 
 object TrophyDetailMapper {
 
@@ -33,7 +34,7 @@ object TrophyDetailMapper {
                 name = titleTrophy.trophyName,
                 detail = titleTrophy.trophyDetail,
                 type = titleTrophy.trophyType,
-                iconUrl = titleTrophy.trophyIconUrl,
+                iconUrl = PsnImageUrl.forceRaster(titleTrophy.trophyIconUrl),
                 isHidden = titleTrophy.trophyHidden,
                 earnedRate = earnedRate,
                 groupId = groupId,

@@ -45,7 +45,8 @@ object PlayerMapper {
             platinumCount = summary.earnedTrophies.platinum,
             goldCount = summary.earnedTrophies.gold,
             silverCount = summary.earnedTrophies.silver,
-            bronzeCount = summary.earnedTrophies.bronze
+            bronzeCount = summary.earnedTrophies.bronze,
+            lastSyncAt = System.currentTimeMillis()
         )
     }
 
@@ -65,7 +66,8 @@ object PlayerMapper {
             platinumCount = entity.platinumCount,
             goldCount = entity.goldCount,
             silverCount = entity.silverCount,
-            bronzeCount = entity.bronzeCount
+            bronzeCount = entity.bronzeCount,
+            lastSyncAt = entity.lastSyncAt
         )
     }
 }

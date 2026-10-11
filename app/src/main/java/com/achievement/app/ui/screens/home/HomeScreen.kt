@@ -30,11 +30,8 @@ fun HomeScreen(
     val isRefreshing = gameUiState.isLoading || profileUiState.isLoading
 
     LaunchedEffect(Unit) {
-        if (gameUiState.games.isEmpty()) {
-            gameViewModel.syncFromApi()
-        }
-        profileViewModel.syncFromApi()
-        profileViewModel.syncPresence()
+        gameViewModel.autoSyncIfStale()
+        profileViewModel.autoSyncPresenceIfStale()
     }
 
     PullToRefreshBox(

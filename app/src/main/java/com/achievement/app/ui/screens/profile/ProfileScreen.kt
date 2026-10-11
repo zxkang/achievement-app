@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -21,25 +22,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.achievement.app.R
+import com.achievement.app.domain.util.TimeUtils
 import com.achievement.app.ui.components.PlayerCard
 import com.achievement.app.ui.theme.*
+import com.achievement.app.viewmodel.GameViewModel
 import com.achievement.app.viewmodel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
+    gameViewModel: GameViewModel = hiltViewModel(),
     onLogout: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val gameUiState by gameViewModel.uiState.collectAsState()
+
+    val games = gameUiState.games
+    val totalPlaytimeMinutes = games.sumOf { it.first.playtimeMinutes }
+    val totalGames = games.size
+    // 完美数以奖杯标题数据为准:gamelist 可能缺少个别已 100% 的标题,故不依赖 games 配对
+    val perfectCount = gameUiState.achievements.count {
+        it.achievementTotal > 0 && it.achievementUnlocked == it.achievementTotal
+    }
+    val completionRate = if (totalGames > 0) perfectCount * 100 / totalGames else 0
+    val lastSyncText = uiState.player?.lastSyncAt?.takeIf { it > 0 }?.let {
+        java.time.Instant.ofEpochMilli(it)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDateTime()
+            .let(TimeUtils::formatDateTime)
+    }
 
     LaunchedEffect(Unit) {
-        viewModel.syncFromApi()
+        gameViewModel.autoSyncIfStale()
+        viewModel.autoSyncIfStale()
     }
 
     PullToRefreshBox(
-        isRefreshing = uiState.isLoading,
-        onRefresh = { viewModel.syncFromApi() },
+        isRefreshing = uiState.isLoading || gameUiState.isLoading,
+        onRefresh = {
+            viewModel.syncFromApi()
+            gameViewModel.syncFromApi()
+        },
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
@@ -70,7 +94,7 @@ fun ProfileScreen(
                                 color = PSNOnSurface
                             )
 
-                            Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -82,7 +106,7 @@ fun ProfileScreen(
                                 ProfileTrophyStat("铜", player.bronzeCount, Bronze, R.drawable.trophy_icon_bronze)
                             }
 
-                            Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
                             HorizontalDivider(color = PSNSurfaceVariant)
 
@@ -96,7 +120,7 @@ fun ProfileScreen(
                                 ProfileValueStat("等级", "Lv.${player.trophyLevel}", PSNBlueLight)
                             }
 
-                            Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
                             LinearProgressIndicator(
                                 progress = { player.trophyProgress / 100f },
@@ -125,6 +149,82 @@ fun ProfileScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = PSNBlueLight
                                 )
+                            }
+
+                            if (games.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                HorizontalDivider(color = PSNSurfaceVariant)
+
+                                Spacer(modifier = Modifier.height(18.dp))
+
+                                Text(
+                                    text = "游戏统计",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PSNOnSurface
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = TimeUtils.formatPlayTime(totalPlaytimeMinutes),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PSNBlueLight
+                                    )
+                                    Text(
+                                        text = "总游玩时长",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = PSNOnSurfaceVariant
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    ProfileValueStat("总游戏数", totalGames.toString(), PSNOnSurface)
+                                    ProfileValueStat("完美数", perfectCount.toString(), PSNOnSurface)
+                                    ProfileValueStat("完成率", "$completionRate%", PSNBlueLight)
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Schedule,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = PSNOnSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "最近更新",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = PSNOnSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = lastSyncText ?: "未同步",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = PSNOnSurface
+                                    )
+                                }
                             }
                         }
                     }

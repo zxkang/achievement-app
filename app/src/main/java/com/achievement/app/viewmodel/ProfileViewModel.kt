@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.achievement.app.data.repository.PlayerRepository
 import com.achievement.app.domain.model.Player
+import com.achievement.app.domain.util.SyncThrottle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,7 @@ class ProfileViewModel @Inject constructor(
     }
     
     fun syncFromApi() {
+        SyncThrottle.mark(SyncThrottle.KEY_PLAYER)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -54,9 +56,22 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun autoSyncIfStale() {
+        if (SyncThrottle.isStale(SyncThrottle.KEY_PLAYER, SyncThrottle.PLAYER_INTERVAL_MS)) {
+            syncFromApi()
+        }
+    }
+
     fun syncPresence() {
+        SyncThrottle.mark(SyncThrottle.KEY_PRESENCE)
         viewModelScope.launch {
             playerRepository.syncPresence()
+        }
+    }
+
+    fun autoSyncPresenceIfStale() {
+        if (SyncThrottle.isStale(SyncThrottle.KEY_PRESENCE, SyncThrottle.PRESENCE_INTERVAL_MS)) {
+            syncPresence()
         }
     }
     

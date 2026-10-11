@@ -15,6 +15,7 @@ import com.achievement.app.domain.model.PlatinumHall
 import com.achievement.app.domain.model.Trophy
 import com.achievement.app.domain.util.Constants
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,13 +37,23 @@ class GameRepository @Inject constructor(
     }
 
     fun getGamesWithAchievements(): Flow<List<Pair<Game, Achievement?>>> {
-        return gameDao.getAllGames().map { gameEntities ->
-            val games = GameMapper.entityListToDomainList(gameEntities)
-            games.map { game ->
-                val achievementKey = game.npCommunicationId ?: game.appId
-                val achievement = achievementDao.getAchievementById(achievementKey)
-                Pair(game, achievement?.let { TrophyMapper.entityToDomain(it) })
+        // 一次性读取 games + achievements 并在内存建索引,避免逐个 game 触发 getAchievementById 的 N+1 查询
+        return combine(
+            gameDao.getAllGames(),
+            achievementDao.getAllAchievements()
+        ) { gameEntities, achievementEntities ->
+            val achievementByKey = achievementEntities.associateBy { it.appId }
+            gameEntities.map { gameEntity ->
+                val game = GameMapper.entityToDomain(gameEntity)
+                val key = game.npCommunicationId ?: game.appId
+                Pair(game, achievementByKey[key]?.let { TrophyMapper.entityToDomain(it) })
             }
+        }
+    }
+
+    fun getAllAchievements(): Flow<List<Achievement>> {
+        return achievementDao.getAllAchievements().map { entities ->
+            entities.map { TrophyMapper.entityToDomain(it) }
         }
     }
 

@@ -114,6 +114,8 @@ class AuthRepository @Inject constructor(
     }
     
     fun isLoggedIn(): Flow<Boolean> = tokenDataStore.isLoggedIn()
+
+    fun isLoggedInCached(): Boolean = tokenDataStore.isLoggedInCached()
     
     suspend fun logout() {
         tokenDataStore.clear()

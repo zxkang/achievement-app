@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.achievement.app.domain.model.Trophy
+import com.achievement.app.domain.util.PsnImageUrl
 import com.achievement.app.ui.theme.*
 
 @Composable
@@ -83,7 +84,7 @@ fun TrophyItemCard(
             ) {
                 if (trophy.iconUrl != null) {
                     AsyncImage(
-                        model = trophy.iconUrl,
+                        model = PsnImageUrl.forceRaster(trophy.iconUrl),
                         contentDescription = null,
                         modifier = Modifier
                             .size(if (isPlatinum) 48.dp else 40.dp)

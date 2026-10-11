@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#1976D2" />
-</shape>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 极碳黑底:近黑但保留一丝可辨边缘 -->
+    <path android:fillColor="#FF0A0A0C" android:pathData="M0,0 H108 V108 H0 Z" />
+
+    <!-- 淡铂金描边圆环:贴近圆形遮罩边缘,与白金奖杯同色系,框出徽章轮廓 -->
+    <path
+        android:strokeColor="#B3C6D4E2"
+        android:strokeWidth="2"
+        android:pathData="M20,54 A34,34 0 1,1 88,54 A34,34 0 1,1 20,54 Z" />
+</vector>

@@ -37,3 +37,16 @@
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.PagedList
+
+# OkHttp / okio
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+
+# Hilt / Dagger (consumer rules cover most; guard warnings)
+-dontwarn dagger.internal.codegen.**
+
+# Coil (2.x uses the `coil` package; ships consumer rules, guard as a fallback)
+-dontwarn coil.**

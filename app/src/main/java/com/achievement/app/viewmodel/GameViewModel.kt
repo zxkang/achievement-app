@@ -8,6 +8,7 @@ import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.model.PlatinumHall
 import com.achievement.app.domain.model.Player
+import com.achievement.app.domain.util.SyncThrottle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,7 @@ import javax.inject.Inject
 
 data class GameUiState(
     val games: List<Pair<Game, Achievement?>> = emptyList(),
+    val achievements: List<Achievement> = emptyList(),
     val platinumHall: List<PlatinumHall> = emptyList(),
     val player: Player? = null,
     val isLoading: Boolean = false,
@@ -34,6 +36,7 @@ class GameViewModel @Inject constructor(
     
     init {
         loadGames()
+        loadAchievements()
         loadPlatinumHall()
         loadPlayer()
     }
@@ -42,6 +45,14 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             gameRepository.getGamesWithAchievements().collect { games ->
                 _uiState.value = _uiState.value.copy(games = games)
+            }
+        }
+    }
+
+    private fun loadAchievements() {
+        viewModelScope.launch {
+            gameRepository.getAllAchievements().collect { achievements ->
+                _uiState.value = _uiState.value.copy(achievements = achievements)
             }
         }
     }
@@ -63,6 +74,8 @@ class GameViewModel @Inject constructor(
     }
     
     fun syncFromApi() {
+        SyncThrottle.mark(SyncThrottle.KEY_GAMES)
+        SyncThrottle.mark(SyncThrottle.KEY_PLAYER)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
@@ -81,6 +94,12 @@ class GameViewModel @Inject constructor(
         }
     }
     
+    fun autoSyncIfStale() {
+        if (SyncThrottle.isStale(SyncThrottle.KEY_GAMES, SyncThrottle.GAMES_INTERVAL_MS)) {
+            syncFromApi()
+        }
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

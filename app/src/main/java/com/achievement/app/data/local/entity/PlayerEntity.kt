@@ -19,5 +19,6 @@ data class PlayerEntity(
     val platinumCount: Int,
     val goldCount: Int,
     val silverCount: Int,
-    val bronzeCount: Int
+    val bronzeCount: Int,
+    val lastSyncAt: Long = 0L
 )

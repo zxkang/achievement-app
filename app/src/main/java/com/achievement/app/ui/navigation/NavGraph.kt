@@ -1,5 +1,10 @@
 package com.achievement.app.ui.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.unit.dp
@@ -27,6 +32,8 @@ import com.achievement.app.ui.theme.PSNBackground
 import com.achievement.app.ui.theme.PSNBlue
 import com.achievement.app.ui.theme.PSNOnSurfaceVariant
 import com.achievement.app.viewmodel.AuthViewModel
+import com.achievement.app.viewmodel.GameViewModel
+import com.achievement.app.viewmodel.ProfileViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -49,14 +56,23 @@ object NavRoutes {
 
 @Composable
 fun NavGraph(
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    gameViewModel: GameViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
     val uiState by authViewModel.uiState.collectAsState()
 
     val navItems = listOf(Screen.Home, Screen.Games, Screen.Trophies, Screen.Profile)
 
-    if (!uiState.isLoggedIn) {
+    if (!uiState.isAuthResolved) {
+        // 系统启动页会持续到登录态就绪,此兜底分支通常不可见,故不放转圈以免二次闪烁
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PSNBackground)
+        )
+    } else if (!uiState.isLoggedIn) {
         LoginScreen(
             onLoginSuccess = {
                 navController.navigate(Screen.Home.route) {
@@ -120,29 +136,59 @@ fun NavGraph(
                 startDestination = Screen.Home.route,
                 modifier = Modifier.padding(innerPadding)
             ) {
-                composable(Screen.Home.route) {
+                composable(
+                    Screen.Home.route,
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { ExitTransition.None }
+                ) {
                     HomeScreen(
+                        gameViewModel = gameViewModel,
+                        profileViewModel = profileViewModel,
                         onGameClick = { appId, npCommunicationId ->
                             navController.navigate(NavRoutes.gameDetail(appId, npCommunicationId))
                         }
                     )
                 }
-                composable(Screen.Games.route) {
+                composable(
+                    Screen.Games.route,
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { ExitTransition.None }
+                ) {
                     GameListScreen(
+                        viewModel = gameViewModel,
                         onGameClick = { appId, npCommunicationId ->
                             navController.navigate(NavRoutes.gameDetail(appId, npCommunicationId))
                         }
                     )
                 }
-                composable(Screen.Trophies.route) {
+                composable(
+                    Screen.Trophies.route,
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { ExitTransition.None }
+                ) {
                     TrophyListScreen(
+                        viewModel = gameViewModel,
                         onGameClick = { appId, npCommunicationId ->
                             navController.navigate(NavRoutes.gameDetail(appId, npCommunicationId))
                         }
                     )
                 }
-                composable(Screen.Profile.route) {
+                composable(
+                    Screen.Profile.route,
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { ExitTransition.None }
+                ) {
                     ProfileScreen(
+                        viewModel = profileViewModel,
+                        gameViewModel = gameViewModel,
                         onLogout = { authViewModel.logout() }
                     )
                 }

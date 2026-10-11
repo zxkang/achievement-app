@@ -12,10 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.achievement.app.ui.components.GameCard
 import com.achievement.app.ui.theme.*
+import com.achievement.app.ui.util.GameSort
+import com.achievement.app.ui.util.GameSortSelector
+import com.achievement.app.ui.util.applySort
 import com.achievement.app.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,15 +30,17 @@ fun GameListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var sort by remember { mutableStateOf(GameSort.Default) }
 
-    val filteredGames = remember(uiState.games, searchQuery) {
-        if (searchQuery.isBlank()) {
+    val filteredGames = remember(uiState.games, searchQuery, sort) {
+        val base = if (searchQuery.isBlank()) {
             uiState.games
         } else {
             uiState.games.filter { (game, _) ->
                 game.name.contains(searchQuery, ignoreCase = true)
             }
         }
+        base.applySort(sort)
     }
 
     PullToRefreshBox(
@@ -45,6 +51,14 @@ fun GameListScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
+            Text(
+                text = "游戏",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = PSNOnSurface,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+            )
+
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -64,6 +78,14 @@ fun GameListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+
+            GameSortSelector(
+                selected = sort,
+                onSelect = { sort = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
             LazyColumn(

@@ -8,9 +8,10 @@ package com.achievement.app.domain.util
 object PsnImageUrl {
     fun forceRaster(url: String?): String? {
         if (url == null) return null
+        val path = url.substringBefore('?')
         return if (
             url.contains("image.api.playstation.com") &&
-            url.endsWith(".png") &&
+            path.endsWith(".png", ignoreCase = true) &&
             !url.contains("fm=")
         ) "$url?fm=png" else url
     }
