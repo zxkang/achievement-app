@@ -1,5 +1,6 @@
 package com.achievement.app.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,7 +8,10 @@ import com.achievement.app.data.repository.GameRepository
 import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.model.Trophy
+import com.achievement.app.domain.util.PsnImageUrl
+import com.achievement.app.domain.util.PsnImages
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +30,7 @@ data class GameDetailUiState(
 @HiltViewModel
 class GameDetailViewModel @Inject constructor(
     private val gameRepository: GameRepository,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -35,6 +40,9 @@ class GameDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(GameDetailUiState())
     val uiState: StateFlow<GameDetailUiState> = _uiState.asStateFlow()
+
+    /** Room 的奖杯流会因同步反复发射,记录已预取的地址避免重复排队。 */
+    private val prefetchedIcons = mutableSetOf<String>()
 
     init {
         loadGameData()
@@ -54,8 +62,26 @@ class GameDetailViewModel @Inject constructor(
         viewModelScope.launch {
             gameRepository.getTrophiesForGame(appId).collect { trophies ->
                 _uiState.value = _uiState.value.copy(trophies = trophies)
+                prefetchIcons(trophies)
             }
         }
+    }
+
+    /**
+     * PSN CDN 首字节延迟高,奖杯列表加载后按显示顺序限流预取图标(去重后通常远少于奖杯数)。
+     *
+     * 跳过首屏可见的前几项:它们由 AsyncImage 自己发起,Coil 没有进行中请求去重,
+     * 预取同一张只会双份下载,把首屏最该快的图标挤到连接队列后面。
+     */
+    private fun prefetchIcons(trophies: List<Trophy>) {
+        val urls = trophies.asSequence()
+            .drop(FIRST_SCREEN_ICONS)
+            .mapNotNull { PsnImageUrl.sized(it.iconUrl, PsnImages.TROPHY_ICON_PX) }
+            .distinct()
+            .filter { prefetchedIcons.add(it) }
+            .toList()
+        if (urls.isEmpty()) return
+        PsnImages.prefetch(viewModelScope, context, urls, PsnImages.TROPHY_ICON_PX, PsnImages.TROPHY_PARALLELISM)
     }
 
     fun syncTrophies() {
@@ -85,5 +111,10 @@ class GameDetailViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    private companion object {
+        /** 首屏可见的奖杯数,这些图标交给 AsyncImage 自己请求,不重复预取。 */
+        const val FIRST_SCREEN_ICONS = 8
     }
 }

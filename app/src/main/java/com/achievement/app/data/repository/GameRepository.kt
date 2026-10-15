@@ -14,6 +14,8 @@ import com.achievement.app.domain.model.Game
 import com.achievement.app.domain.model.PlatinumHall
 import com.achievement.app.domain.model.Trophy
 import com.achievement.app.domain.util.Constants
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -78,21 +80,30 @@ class GameRepository @Inject constructor(
 
             val authorization = "Bearer $accessToken"
 
-            val enGameList = gameApi.getUserGames(
-                accountId = accountId,
-                acceptLanguage = Constants.LANG_ENGLISH,
-                authorization = authorization
-            )
-            val zhGameList = gameApi.getUserGames(
-                accountId = accountId,
-                acceptLanguage = Constants.LANG_CHINESE,
-                authorization = authorization
-            )
-
-            val trophyTitlesResponse = trophyApi.getUserTrophyTitles(
-                accountId = accountId,
-                authorization = authorization
-            )
+            // 三个接口互不依赖,并发请求;串行时耗时是三者之和,PSN API 单次延迟 1~2s
+            val (enGameList, zhGameList, trophyTitlesResponse) = coroutineScope {
+                val en = async {
+                    gameApi.getUserGames(
+                        accountId = accountId,
+                        acceptLanguage = Constants.LANG_ENGLISH,
+                        authorization = authorization
+                    )
+                }
+                val zh = async {
+                    gameApi.getUserGames(
+                        accountId = accountId,
+                        acceptLanguage = Constants.LANG_CHINESE,
+                        authorization = authorization
+                    )
+                }
+                val trophies = async {
+                    trophyApi.getUserTrophyTitles(
+                        accountId = accountId,
+                        authorization = authorization
+                    )
+                }
+                Triple(en.await(), zh.await(), trophies.await())
+            }
 
             // 以 titleId 为键建立 英文规范化名 -> 中文名 映射(Trophy API 不支持中文,只能靠英文名关联)
             val chineseNameMap = GameMapper.buildChineseNameMap(enGameList.titles, zhGameList.titles)
@@ -134,21 +145,30 @@ class GameRepository @Inject constructor(
                 ?: return Result.failure(Exception("未登录"))
 
             val authorization = "Bearer $accessToken"
+            val accountId = authRepository.getAccountId()
+                ?: return Result.failure(Exception("无账号"))
 
-            val titleTrophiesResponse = trophyApi.getTitleTrophies(
-                npCommunicationId = npCommunicationId,
-                trophyGroupId = "default",
-                npServiceName = npServiceName,
-                authorization = authorization
-            )
-
-            val userTrophiesResponse = trophyApi.getUserTrophiesEarnedForTitle(
-                accountId = authRepository.getAccountId() ?: return Result.failure(Exception("无账号")),
-                npCommunicationId = npCommunicationId,
-                trophyGroupId = "default",
-                npServiceName = npServiceName,
-                authorization = authorization
-            )
+            // 两个接口互不依赖,并发请求
+            val (titleTrophiesResponse, userTrophiesResponse) = coroutineScope {
+                val title = async {
+                    trophyApi.getTitleTrophies(
+                        npCommunicationId = npCommunicationId,
+                        trophyGroupId = "default",
+                        npServiceName = npServiceName,
+                        authorization = authorization
+                    )
+                }
+                val earned = async {
+                    trophyApi.getUserTrophiesEarnedForTitle(
+                        accountId = accountId,
+                        npCommunicationId = npCommunicationId,
+                        trophyGroupId = "default",
+                        npServiceName = npServiceName,
+                        authorization = authorization
+                    )
+                }
+                title.await() to earned.await()
+            }
 
             val trophyEntities = TrophyDetailMapper.mergeTrophies(
                 titleTrophies = titleTrophiesResponse.trophies,

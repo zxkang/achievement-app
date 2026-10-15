@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.achievement.app.R
 import com.achievement.app.domain.model.Player
+import com.achievement.app.domain.util.PsnImages
 import com.achievement.app.ui.theme.*
+import com.achievement.app.ui.util.rememberPsnImageModel
 
 @Composable
 fun PlayerCard(
@@ -44,7 +46,7 @@ fun PlayerCard(
         ) {
             player.avatarUrl?.let { url ->
                 AsyncImage(
-                    model = url,
+                    model = rememberPsnImageModel(url, PsnImages.AVATAR_PX),
                     contentDescription = "头像",
                     modifier = Modifier
                         .size(80.dp)

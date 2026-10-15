@@ -1,5 +1,6 @@
 package com.achievement.app.di
 
+import com.achievement.app.BuildConfig
 import com.achievement.app.data.remote.api.AuthApi
 import com.achievement.app.data.remote.api.GameApi
 import com.achievement.app.data.remote.api.TrophyApi
@@ -36,7 +37,12 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // BODY 会把 NPSSO token、Set-Cookie 和完整响应写进 logcat,只允许在 debug 构建开启。
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
     }
     

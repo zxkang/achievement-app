@@ -10,7 +10,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.achievement.app.R
+import com.achievement.app.domain.util.PsnImages
 import com.achievement.app.ui.components.TrophyItemCard
+import com.achievement.app.ui.util.rememberPsnImageModel
 import com.achievement.app.ui.theme.*
 import com.achievement.app.viewmodel.GameDetailViewModel
 
@@ -82,18 +83,13 @@ fun GameDetailScreen(
             )
         }
     ) { innerPadding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isLoadingTrophies,
-            onRefresh = { viewModel.syncTrophies() },
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 uiState.game?.let { game ->
                     item {
                         Card(
@@ -105,7 +101,7 @@ fun GameDetailScreen(
                             Column {
                                 if (game.headerImage != null) {
                                     AsyncImage(
-                                        model = game.headerImage,
+                                        model = rememberPsnImageModel(game.headerImage, PsnImages.GAME_HEADER_PX),
                                         contentDescription = game.name,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -255,7 +251,7 @@ fun GameDetailScreen(
                         }
                     }
 
-                    items(filteredTrophies) { trophy ->
+                    items(filteredTrophies, key = { "${it.appId}:${it.groupId}:${it.trophyId}" }) { trophy ->
                         TrophyItemCard(trophy = trophy)
                     }
 
@@ -304,7 +300,7 @@ fun GameDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = when {
-                                    hasNp -> "下拉刷新,或点击下方按钮同步该游戏的奖杯列表"
+                                    hasNp -> "点击下方按钮同步该游戏的奖杯列表"
                                     isCollectionName(gameName) -> "合集内的奖杯按子游戏分别记录,请从对应的子游戏查看"
                                     else -> "该游戏可能没有奖杯,或尚未在你的账号中生成奖杯记录"
                                 },
@@ -349,7 +345,6 @@ fun GameDetailScreen(
             }
         }
     }
-}
 
 /** 判断是否为合集/捆绑包类标题(其奖杯通常按子游戏分别记录)。 */
 private fun isCollectionName(name: String): Boolean {

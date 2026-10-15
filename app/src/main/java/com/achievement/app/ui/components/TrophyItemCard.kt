@@ -1,5 +1,6 @@
 package com.achievement.app.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,12 +14,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.achievement.app.R
 import com.achievement.app.domain.model.Trophy
-import com.achievement.app.domain.util.PsnImageUrl
+import com.achievement.app.domain.util.PsnImages
+import com.achievement.app.ui.util.rememberPsnImageModel
 import com.achievement.app.ui.theme.*
 
 @Composable
@@ -43,6 +47,17 @@ fun TrophyItemCard(
     }
 
     val isPlatinum = trophy.type == "platinum"
+    val iconModel = rememberPsnImageModel(trophy.iconUrl, PsnImages.TROPHY_ICON_PX)
+    // PSN 图标服务只有 HTTP/1.1 且首字节抖动大(1~7s),整屏图标不可能瞬间到位。
+    // 先用本地对应类型的奖杯轮廓占位,避免下载期间只剩空圈。
+    val fallbackIcon = painterResource(
+        when (trophy.type) {
+            "platinum" -> R.drawable.trophy_icon_platinum
+            "gold" -> R.drawable.trophy_icon_gold
+            "silver" -> R.drawable.trophy_icon_silver
+            else -> R.drawable.trophy_icon_bronze
+        }
+    )
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -82,9 +97,16 @@ fun TrophyItemCard(
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                if (trophy.iconUrl != null) {
+                Image(
+                    painter = fallbackIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(if (isPlatinum) 32.dp else 26.dp),
+                    contentScale = ContentScale.Fit,
+                    alpha = if (trophy.isEarned) 0.85f else 0.35f
+                )
+                if (iconModel != null) {
                     AsyncImage(
-                        model = PsnImageUrl.forceRaster(trophy.iconUrl),
+                        model = iconModel,
                         contentDescription = null,
                         modifier = Modifier
                             .size(if (isPlatinum) 48.dp else 40.dp)

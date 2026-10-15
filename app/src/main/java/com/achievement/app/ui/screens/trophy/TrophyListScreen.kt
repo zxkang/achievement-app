@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +22,13 @@ import coil.compose.AsyncImage
 import com.achievement.app.R
 import com.achievement.app.domain.model.Achievement
 import com.achievement.app.domain.model.Game
+import com.achievement.app.domain.util.PsnImages
 import com.achievement.app.domain.util.TimeUtils
 import com.achievement.app.ui.theme.*
 import com.achievement.app.ui.util.GameSort
 import com.achievement.app.ui.util.GameSortSelector
 import com.achievement.app.ui.util.applySort
+import com.achievement.app.ui.util.rememberPsnImageModel
 import com.achievement.app.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,95 +44,89 @@ fun TrophyListScreen(
         uiState.games.filter { it.second != null }.applySort(sort)
     }
 
-    PullToRefreshBox(
-        isRefreshing = uiState.isLoading,
-        onRefresh = { viewModel.syncFromApi() },
-        modifier = Modifier.fillMaxSize()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Text(
-                    text = "奖杯收藏",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = PSNOnSurface
-                )
-            }
+        item {
+            Text(
+                text = "奖杯收藏",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = PSNOnSurface
+            )
+        }
 
-            uiState.player?.let { player ->
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = PSNSurface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        uiState.player?.let { player ->
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = PSNSurface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 20.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 20.dp)
-                        ) {
-                            TrophyStatItem("白金", player.platinumCount, Platinum, R.drawable.trophy_icon_platinum, Modifier.weight(1f))
-                            TrophyStatItem("金", player.goldCount, Gold, R.drawable.trophy_icon_gold, Modifier.weight(1f))
-                            TrophyStatItem("银", player.silverCount, Silver, R.drawable.trophy_icon_silver, Modifier.weight(1f))
-                            TrophyStatItem("铜", player.bronzeCount, Bronze, R.drawable.trophy_icon_bronze, Modifier.weight(1f))
-                        }
+                        TrophyStatItem("白金", player.platinumCount, Platinum, R.drawable.trophy_icon_platinum, Modifier.weight(1f))
+                        TrophyStatItem("金", player.goldCount, Gold, R.drawable.trophy_icon_gold, Modifier.weight(1f))
+                        TrophyStatItem("银", player.silverCount, Silver, R.drawable.trophy_icon_silver, Modifier.weight(1f))
+                        TrophyStatItem("铜", player.bronzeCount, Bronze, R.drawable.trophy_icon_bronze, Modifier.weight(1f))
                     }
                 }
             }
+        }
 
-            item {
-                GameSortSelector(
-                    selected = sort,
-                    onSelect = { sort = it },
-                    modifier = Modifier.fillMaxWidth()
+        item {
+            GameSortSelector(
+                selected = sort,
+                onSelect = { sort = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        items(gamesWithAchievements, key = { it.first.appId }) { (game, achievement) ->
+            if (achievement != null) {
+                TrophyGameCard(
+                    game = game,
+                    achievement = achievement,
+                    onClick = { onGameClick(game.appId, game.npCommunicationId) }
                 )
             }
+        }
 
-            items(gamesWithAchievements) { (game, achievement) ->
-                if (achievement != null) {
-                    TrophyGameCard(
-                        game = game,
-                        achievement = achievement,
-                        onClick = { onGameClick(game.appId, game.npCommunicationId) }
-                    )
-                }
-            }
-
-            if (gamesWithAchievements.isEmpty() && !uiState.isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = PSNOnSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "暂无奖杯数据",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = PSNOnSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "下拉刷新以同步数据",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = PSNOnSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
+        if (gamesWithAchievements.isEmpty() && !uiState.isLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = PSNOnSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "暂无奖杯数据",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = PSNOnSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "到「我的」页面同步数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PSNOnSurfaceVariant.copy(alpha = 0.6f)
+                        )
                     }
                 }
             }
@@ -199,7 +194,7 @@ private fun TrophyGameCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = game.headerImage,
+                model = rememberPsnImageModel(game.headerImage, PsnImages.GAME_THUMB_PX),
                 contentDescription = game.name,
                 modifier = Modifier
                     .size(56.dp)
